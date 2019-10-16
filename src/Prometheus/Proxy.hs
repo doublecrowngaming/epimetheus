@@ -15,12 +15,14 @@ import           Network.Wai.Conduit
 import           Network.Wai.Handler.Warp  hiding (Port)
 import           Prelude                   hiding (lines, map)
 import           Prometheus.Conduit
+import           Prometheus.Format.Type    (PrometheusLine)
 
 
 data PrometheusProxy = PrometheusProxy {
   ppPort            :: Port,
   ppSources         :: [PrometheusLocation],
-  ppHandleException :: forall i o m. MonadUnliftIO m => ConduitT i o m () -> ConduitT i o m ()
+  ppHandleException :: forall i o m. MonadUnliftIO m => ConduitT i o m () -> ConduitT i o m (),
+  ppRewriteRules    :: forall m. Monad m => ConduitT PrometheusLine PrometheusLine m ()
 }
 
 prometheusProxy :: PrometheusProxy -> IO ()
@@ -35,6 +37,7 @@ prometheusProxy PrometheusProxy{..} =
 
     prometheusSources =
       mapM_ (ppHandleException . prometheusSource) ppSources
+      .| ppRewriteRules
       .| prometheusRenderer
 
     port = fromIntegral $ unPort ppPort

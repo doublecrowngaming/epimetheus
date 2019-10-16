@@ -16,7 +16,8 @@ import           Network.HTTP.Simple
 import           Prelude                      hiding (lines, map, mapM)
 import           Prometheus.Format.Parse      (parsePrometheusLine)
 import           Prometheus.Format.Render     (renderPrometheusLine)
-import           Prometheus.Format.Type       (PrometheusLine)
+import           Prometheus.Format.Type       (LabelName, LabelValue,
+                                               PrometheusLine, addLabel)
 
 data PrometheusParseError = PrometheusParseError ByteString String deriving Show
 instance Exception PrometheusParseError
@@ -48,3 +49,9 @@ prometheusSource PrometheusLocation { psPort = (Port port), psPath = (Path path)
 
 prometheusRenderer :: Monad m => ConduitT PrometheusLine ByteString m ()
 prometheusRenderer = map renderPrometheusLine .| map (<> "\n")
+
+identityRewriter :: Monad m => ConduitT PrometheusLine PrometheusLine m ()
+identityRewriter = map id
+
+addLabel :: Monad m => LabelName -> LabelValue -> ConduitT PrometheusLine PrometheusLine m ()
+addLabel = (map .) . Prometheus.Format.Type.addLabel
