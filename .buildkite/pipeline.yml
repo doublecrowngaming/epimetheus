@@ -1,0 +1,15 @@
+steps:
+  - label: Run Tests
+    command: |
+      stack test --fast
+    agents:
+      haskell: '*'
+
+  - label: Run Code Quality Checks
+    command: |
+      stack build --fast --no-terminal hlint
+      stack build --fast --pedantic
+
+      stack exec hlint src/
+    agents:
+      haskell: '*'
