@@ -6,12 +6,13 @@ module Prometheus.Conduit where
 import           Control.Monad.Catch          (Exception, MonadThrow, throwM)
 import           Control.Monad.Trans.Resource (MonadResource)
 import           Data.Attoparsec.ByteString   (parseOnly)
-import           Data.ByteString.Char8        (ByteString)
+import           Data.ByteString.Char8        (ByteString, unpack)
 import           Data.Conduit
 import           Data.Conduit.Binary          (lines)
 import           Data.Conduit.Combinators     (map, mapM)
 import           Data.Function                ((&))
 import           Data.Word                    (Word16)
+import qualified Network.HTTP.Client          as Req (host, path, port)
 import           Network.HTTP.Simple
 import           Prelude                      hiding (lines, map, mapM)
 import           Prometheus.Format.Parse      (parsePrometheusLine)
@@ -19,7 +20,8 @@ import           Prometheus.Format.Render     (renderPrometheusLine)
 import           Prometheus.Format.Type       (LabelName, LabelValue,
                                                PrometheusLine, addLabel)
 
-data PrometheusParseError = PrometheusParseError ByteString String deriving Show
+
+data PrometheusParseError = PrometheusParseError PrometheusLocation ByteString String deriving Show
 instance Exception PrometheusParseError
 
 newtype Port = Port { unPort :: Word16 } deriving (Num)
@@ -27,15 +29,28 @@ newtype Port = Port { unPort :: Word16 } deriving (Num)
 instance Show Port where
   show (Port word16) = "Port " <> show word16
 
-newtype Path = Path ByteString deriving Show
+newtype Path = Path { unPath :: ByteString }
+
+instance Show Path where
+  show = show . unPath
 
 data PrometheusLocation = PrometheusLocation {
   psPort :: Port,
   psPath :: Path
-} deriving Show
+}
+
+instance Show PrometheusLocation where
+  show (PrometheusLocation port path) = "localhost:" <> show (unPort port) <> unpack (unPath path)
+
+locationFromRequest :: Request -> Maybe PrometheusLocation
+locationFromRequest req =
+  if Req.host req == "localhost" then
+    Just (PrometheusLocation (Port . fromIntegral . Req.port $ req) (Path . Req.path $ req))
+  else
+    Nothing
 
 prometheusSource :: (MonadThrow m, MonadResource m) => PrometheusLocation -> ConduitT i PrometheusLine m ()
-prometheusSource PrometheusLocation { psPort = (Port port), psPath = (Path path) } =
+prometheusSource loc@PrometheusLocation { psPort = (Port port), psPath = (Path path) } =
   httpSource
     (defaultRequest
       & setRequestPort (fromIntegral port)
@@ -44,7 +59,7 @@ prometheusSource PrometheusLocation { psPort = (Port port), psPath = (Path path)
 
   where
     parsePrometheus line = case parseOnly parsePrometheusLine line of
-      Left err  -> throwM $ PrometheusParseError line err
+      Left err  -> throwM $ PrometheusParseError loc line err
       Right val -> return val
 
 prometheusRenderer :: Monad m => ConduitT PrometheusLine ByteString m ()
