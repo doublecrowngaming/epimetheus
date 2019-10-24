@@ -1,0 +1,8 @@
+listen_port: 9105
+prometheus_sources:
+  - port: 9100
+    path: /metrics
+  - port: 9100
+    path: /metrix
+  - port: 9101
+    path: /metrics

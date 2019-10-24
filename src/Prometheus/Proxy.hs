@@ -30,7 +30,9 @@ data PrometheusProxy = PrometheusProxy {
 }
 
 prometheusProxy :: PrometheusProxy -> IO ()
-prometheusProxy PrometheusProxy{..} =
+prometheusProxy PrometheusProxy{..} = do
+  logM "Proxy" INFO "Proxy started"
+
   run port (\req -> proxy (requestMethod req) (pathInfo req))
 
   where
