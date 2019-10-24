@@ -18,7 +18,8 @@ import           Prelude                      hiding (lines, map, mapM)
 import           Prometheus.Format.Parse      (parsePrometheusLine)
 import           Prometheus.Format.Render     (renderPrometheusLine)
 import           Prometheus.Format.Type       (LabelName, LabelValue,
-                                               PrometheusLine, addLabel)
+                                               PrometheusLine, addLabel,
+                                               addLabels)
 
 
 data PrometheusParseError = PrometheusParseError PrometheusLocation ByteString String deriving Show
@@ -70,3 +71,6 @@ identityRewriter = map id
 
 addLabel :: Monad m => LabelName -> LabelValue -> ConduitT PrometheusLine PrometheusLine m ()
 addLabel = (map .) . Prometheus.Format.Type.addLabel
+
+addLabels :: Monad m => [(LabelName, LabelValue)] -> ConduitT PrometheusLine PrometheusLine m ()
+addLabels = map . Prometheus.Format.Type.addLabels
