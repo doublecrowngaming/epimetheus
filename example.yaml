@@ -6,3 +6,6 @@ prometheus_sources:
     path: /metrix
   - port: 9101
     path: /metrics
+inject_labels:
+  - label: tier
+    literal: experimental

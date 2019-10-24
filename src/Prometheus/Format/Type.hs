@@ -21,3 +21,7 @@ data PrometheusLine =
 addLabel :: LabelName -> LabelValue -> PrometheusLine -> PrometheusLine
 addLabel ln lv (Metric name labels value time) = Metric name ((ln, lv) : labels) value time
 addLabel _  _  pl                              = pl
+
+addLabels :: [(LabelName, LabelValue)] -> PrometheusLine -> PrometheusLine
+addLabels new (Metric name labels value time) = Metric name (new ++ labels) value time
+addLabels _   pl                              = pl
