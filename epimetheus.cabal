@@ -31,6 +31,8 @@ library
                      , conduit
                      , conduit-extra
                      , exceptions
+                     , hslogger
+                     , http-client
                      , http-conduit
                      , http-types
                      , resourcet
